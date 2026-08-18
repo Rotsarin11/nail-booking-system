@@ -1,0 +1,97 @@
+erDiagram
+    users ||--o{ bookings : "1 ลูกค้าจองได้หลายครั้ง"
+    staff ||--o{ bookings : "1 ช่างรับได้หลายคิว"
+    bookings ||--|{ booking_items : "1 การจองมีหลายบริการ"
+    services ||--o{ booking_items : "1 บริการอยู่ในหลายการจอง"
+    staff ||--o{ staff_service : ""
+    services ||--o{ staff_service : "ช่างทำบริการอะไรได้ (M:N)"
+    staff ||--o{ staff_schedule : "เวลาทำงานช่าง"
+    staff ||--o{ shop_closure : "วันลา/วันปิด"
+    bookings ||--o{ notifications : "1 การจองแจ้งเตือนได้หลายครั้ง"
+    bookings ||--|| service_results : "1 การจอง = 1 ผลบริการ"
+
+    users {
+        int user_id PK
+        enum role "admin | customer"
+        varchar full_name
+        varchar phone
+        varchar line_user_id UK "ลูกค้า"
+        varchar username UK "แอดมิน"
+        varchar password_hash "แอดมิน"
+        datetime created_at
+    }
+    staff {
+        int staff_id PK
+        varchar full_name
+        varchar nickname
+        varchar phone
+        varchar specialty
+        enum status "active | inactive"
+        datetime created_at
+    }
+    services {
+        int service_id PK
+        varchar name
+        varchar category
+        varchar description
+        int duration_min
+        int buffer_min
+        decimal price
+        tinyint is_active
+        datetime created_at
+    }
+    staff_service {
+        int staff_id PK "FK->staff"
+        int service_id PK "FK->services"
+    }
+    staff_schedule {
+        int schedule_id PK
+        int staff_id FK
+        tinyint day_of_week "0-6"
+        time start_time
+        time end_time
+    }
+    shop_closure {
+        int closure_id PK
+        date closure_date
+        int staff_id FK "NULL = ปิดทั้งร้าน"
+        varchar reason
+    }
+    bookings {
+        int booking_id PK
+        int user_id FK
+        int staff_id FK
+        date booking_date
+        time start_time
+        time end_time "คำนวณ Σduration+buffer"
+        enum status "pending..no_show"
+        varchar note
+        datetime created_at
+    }
+    booking_items {
+        int item_id PK
+        int booking_id FK
+        int service_id FK
+        decimal price_snapshot
+        int duration_snapshot
+    }
+    notifications {
+        int notification_id PK
+        int booking_id FK
+        enum type "confirm|reminder|change|cancel"
+        varchar message
+        varchar channel "LINE"
+        datetime scheduled_at
+        datetime sent_at
+        enum status "pending|sent|failed"
+    }
+    service_results {
+        int result_id PK
+        int booking_id FK,UK
+        varchar result_detail
+        enum status "done|partial|cancelled"
+        date completed_date
+        time completed_time
+        decimal total_price
+        varchar note
+    }

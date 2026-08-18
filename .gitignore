@@ -1,0 +1,21 @@
+# ── ความลับ (ห้าม commit เด็ดขาด) ──────────────────────────────
+firebase/serviceAccountKey.json
+**/serviceAccountKey.json
+**/.env
+**/.env.local
+*.pem
+*.key
+
+# ── dependencies / build ───────────────────────────────────────
+**/node_modules/
+**/dist/
+**/.vite/
+
+# ── ระบบ ───────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+*.log
+
+# โฟลเดอร์ขยะชั่วคราว (ลบทิ้งได้)
+_to_delete/
+~$*

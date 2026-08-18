@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NailQ Admin — ระบบจัดการร้านทำเล็บ</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ===== Design Tokens ===== */
+  --primary:#d6336c; --primary-soft:#fce7ef; --primary-dark:#a61e4d;
+  --bg:#f6f7fb; --surface:#ffffff; --sidebar:#1f1b2e;
+  --text:#1f2933; --text-muted:#6b7280; --border:#e6e8ee;
+  --success:#12b886; --success-soft:#e6fcf5;
+  --warning:#f59f00; --warning-soft:#fff9db;
+  --info:#4263eb; --info-soft:#edf2ff;
+  --danger:#e03131; --danger-soft:#fff5f5;
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --shadow-md:0 8px 24px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+
+/* ===== Sidebar ===== */
+.sidebar{width:248px;background:var(--sidebar);color:#cfcadd;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:22px 22px;font-weight:700;font-size:17px;color:#fff}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--primary),#f06595);display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav{padding:8px 12px;flex:1}
+.nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7a7391;padding:14px 14px 6px}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:#cfcadd;text-decoration:none;font-weight:500;cursor:pointer;transition:.15s}
+.nav a .ic{width:20px;text-align:center;font-size:16px}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav a.active{background:var(--primary);color:#fff}
+.nav a .badge{margin-left:auto;background:rgba(255,255,255,.18);border-radius:20px;padding:1px 8px;font-size:11px}
+.side-user{padding:16px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:11px}
+.side-user .av{width:36px;height:36px;border-radius:50%;background:#f06595;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
+.side-user .meta{font-size:12.5px}.side-user .meta b{color:#fff;display:block;font-size:13px}
+.side-user .meta span{color:#8a83a0}
+
+/* ===== Main ===== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:5}
+.topbar h1{font-size:18px;font-weight:600}
+.topbar .sub{color:var(--text-muted);font-size:12.5px;font-weight:400}
+.search{margin-left:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 14px;width:280px;display:flex;align-items:center;gap:9px;color:var(--text-muted)}
+.search input{border:0;background:none;outline:0;font-family:inherit;font-size:13.5px;width:100%;color:var(--text)}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;position:relative}
+.icon-btn .dot{position:absolute;top:9px;right:10px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid #fff}
+.content{padding:26px 28px;flex:1}
+.page{display:none}.page.active{display:block}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+.page-head h2{font-size:21px;font-weight:700}
+.page-head p{color:var(--text-muted);margin-top:3px}
+
+/* buttons */
+.btn{border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.kpi .top{display:flex;justify-content:space-between;align-items:center}
+.kpi .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px}
+.kpi .label{color:var(--text-muted);font-size:13px;margin-top:14px}
+.kpi .val{font-size:27px;font-weight:700;margin-top:2px}
+.kpi .trend{font-size:12px;margin-top:6px;font-weight:600}
+.up{color:var(--success)}.down{color:var(--danger)}
+
+/* layout grid */
+.grid-2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-head h3{font-size:15.5px;font-weight:600}
+.card-body{padding:20px}
+
+/* mini bar chart */
+.chart{display:flex;align-items:flex-end;gap:14px;height:180px;padding-top:10px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.bar{width:60%;background:linear-gradient(180deg,var(--primary),#f783ac);border-radius:7px 7px 0 0}
+.bar-wrap span{font-size:11.5px;color:var(--text-muted)}
+
+/* table */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);font-weight:600;padding:12px 20px;border-bottom:1px solid var(--border)}
+td{padding:13px 20px;border-bottom:1px solid var(--border);font-size:13.5px}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fafbfe}
+.cust{display:flex;align-items:center;gap:11px}
+.cust .av{width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+.cust small{color:var(--text-muted);display:block}
+
+/* badges */
+.badge-st{padding:4px 11px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.badge-st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-wait{background:var(--warning-soft);color:#b8860b}
+.st-confirm{background:var(--info-soft);color:var(--info)}
+.st-done{background:var(--success-soft);color:var(--success)}
+.st-cancel{background:var(--danger-soft);color:var(--danger)}
+
+/* row actions */
+.row-act{display:flex;gap:6px}
+.row-act button{border:1px solid var(--border);background:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px}
+.row-act button:hover{background:var(--bg)}
+
+/* filter bar */
+.toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.chip{padding:8px 15px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;cursor:pointer}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.select{padding:9px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:13px;color:var(--text)}
+
+/* service cards */
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.svc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.svc .thumb{height:120px;background:linear-gradient(135deg,#fce7ef,#e7f5ff);display:flex;align-items:center;justify-content:center;font-size:40px}
+.svc .body{padding:16px}
+.svc h4{font-size:15px;margin-bottom:4px}
+.svc .desc{color:var(--text-muted);font-size:12.5px;margin-bottom:12px;min-height:34px}
+.svc .foot{display:flex;justify-content:space-between;align-items:center}
+.svc .price{color:var(--primary);font-weight:700;font-size:17px}
+.svc .dur{color:var(--text-muted);font-size:12.5px}
+
+/* staff cards */
+.staff-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.staff{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow)}
+.staff .av{width:66px;height:66px;border-radius:50%;margin:0 auto 12px;background:linear-gradient(135deg,var(--primary),#f783ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600}
+.staff h4{font-size:15px}.staff .role{color:var(--text-muted);font-size:12.5px;margin-bottom:10px}
+.staff .stat{display:flex;justify-content:center;gap:18px;font-size:12.5px;border-top:1px solid var(--border);padding-top:12px;margin-top:4px}
+.staff .stat b{display:block;font-size:16px;color:var(--text)}
+.staff .stat span{color:var(--text-muted)}
+.avail{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-bottom:12px}
+.avail.free{color:var(--success)}.avail.busy{color:var(--warning)}
+.avail::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* modal preview (static) */
+.modal-demo{margin-top:22px}
+.modal{max-width:440px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden}
+.modal .m-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal .m-head h3{font-size:16px}
+.modal .m-body{padding:22px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:#374151}
+.field input,.field textarea{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:13.5px}
+.field .row{display:flex;gap:12px}
+.modal .m-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:#fafbfe}
+.section-label{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);font-weight:600;margin:26px 0 12px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.svc-grid{grid-template-columns:repeat(2,1fr)}.staff-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">💅</div> NailQ Admin</div>
+    <nav class="nav">
+      <div class="nav-label">เมนูหลัก</div>
+      <a class="active" data-page="dash"><span class="ic">📊</span> แดชบอร์ด</a>
+      <a data-page="queue"><span class="ic">📅</span> จัดการคิว/นัดหมาย <span class="badge">6</span></a>
+      <a data-page="service"><span class="ic">💅</span> จัดการบริการ</a>
+      <a data-page="staff"><span class="ic">👩‍🎨</span> จัดการช่าง</a>
+      <a data-page="customer"><span class="ic">👥</span> ลูกค้า</a>
+      <div class="nav-label">อื่น ๆ</div>
+      <a data-page="report"><span class="ic">📈</span> รายงาน</a>
+      <a data-page="setting"><span class="ic">⚙️</span> ตั้งค่าร้าน</a>
+    </nav>
+    <div class="side-user">
+      <div class="av">R</div>
+      <div class="meta"><b>Rotsarin</b><span>ผู้ดูแลร้าน</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">แดชบอร์ด</h1>
+        <div class="sub" id="pageSub">ภาพรวมร้านประจำวันเสาร์ที่ 25 ก.ค. 2569</div>
+      </div>
+      <div class="search">🔍<input placeholder="ค้นหาลูกค้า, คิว, บริการ..."></div>
+      <button class="icon-btn">🔔<span class="dot"></span></button>
+    </header>
+
+    <div class="content">
+      <!-- ===== DASHBOARD ===== -->
+      <section class="page active" id="dash">
+        <div class="kpi-grid">
+          <div class="kpi"><div class="top"><div class="ic" style="background:var(--info-soft);color:var(--info)">📅</div></div><div class="label">คิววันนี้</div><div class="val">18</div><div class="trend up">▲ 12% จากเมื่อวาน</div></div>
+          <div class="kpi"><div class="top"><div class="ic" style="background:var(--warning-soft);color:#b8860b">⏳</div></div><div class="label">รอยืนยัน</div><div class="val">6</div><div class="trend down">ต้องดำเนินการ</div></div>
+          <div class="kpi"><div class="top"><div class="ic" style="background:var(--success-soft);color:var(--success)">💰</div></div><div class="label">รายได้วันนี้</div><div class="val">7,850฿</div><div class="trend up">▲ 8% จากเมื่อวาน</div></div>
+          <div class="kpi"><div class="top"><div class="ic" style="background:var(--primary-soft);color:var(--primary)">👩‍🎨</div></div><div class="label">ช่างที่ว่าง</div><div class="val">3 / 5</div><div class="trend">พร้อมรับคิว</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h3>รายได้ 7 วันล่าสุด</h3><select class="select"><option>สัปดาห์นี้</option><option>เดือนนี้</option></select></div>
+            <div class="card-body">
+              <div class="chart">
+                <div class="bar-wrap"><div class="bar" style="height:45%"></div><span>จ</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:62%"></div><span>อ</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:55%"></div><span>พ</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:78%"></div><span>พฤ</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:70%"></div><span>ศ</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:100%"></div><span>ส</span></div>
+                <div class="bar-wrap"><div class="bar" style="height:88%"></div><span>อา</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>บริการยอดนิยม</h3></div>
+            <div class="card-body" style="padding:8px 0">
+              <table>
+                <tr><td><b>เจลสีพื้น</b></td><td style="text-align:right;color:var(--text-muted)">42 คิว</td></tr>
+                <tr><td><b>ต่อเล็บ PVC</b></td><td style="text-align:right;color:var(--text-muted)">31 คิว</td></tr>
+                <tr><td><b>เพนต์ลาย</b></td><td style="text-align:right;color:var(--text-muted)">24 คิว</td></tr>
+                <tr><td><b>สปามือ</b></td><td style="text-align:right;color:var(--text-muted)">15 คิว</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="card-head"><h3>คิวถัดไปวันนี้</h3><button class="btn btn-ghost btn-sm" onclick="go('queue')">ดูทั้งหมด →</button></div>
+          <table>
+            <thead><tr><th>ลูกค้า</th><th>บริการ</th><th>ช่าง</th><th>เวลา</th><th>สถานะ</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cust"><div class="av">ก</div><div>กานต์ชนก<small>@kanchanok</small></div></div></td><td>เจลสีพื้น + เพนต์ลาย</td><td>พี่แนน</td><td>13:00</td><td><span class="badge-st st-confirm">ยืนยันแล้ว</span></td></tr>
+              <tr><td><div class="cust"><div class="av">ม</div><div>มนัสนันท์<small>@manasnan</small></div></div></td><td>ต่อเล็บ PVC</td><td>พี่โบว์</td><td>13:30</td><td><span class="badge-st st-wait">รอยืนยัน</span></td></tr>
+              <tr><td><div class="cust"><div class="av">ธ</div><div>ธนพร<small>@thanaporn</small></div></div></td><td>สปามือ</td><td>พี่แนน</td><td>14:15</td><td><span class="badge-st st-confirm">ยืนยันแล้ว</span></td></tr>
+              <tr><td><div class="cust"><div class="av">ว</div><div>วิภาดา<small>@wipada</small></div></div></td><td>เจลถอด + ทาสีใหม่</td><td>พี่เมย์</td><td>15:00</td><td><span class="badge-st st-wait">รอยืนยัน</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== QUEUE ===== -->
+      <section class="page" id="queue">
+        <div class="page-head">
+          <div><h2>จัดการคิว / นัดหมาย</h2><p>ยืนยัน เลื่อน หรือยกเลิกคิวของลูกค้า</p></div>
+          <button class="btn btn-primary">＋ เพิ่มคิวใหม่</button>
+        </div>
+        <div class="toolbar">
+          <div class="chip on">ทั้งหมด</div>
+          <div class="chip">รอยืนยัน</div>
+          <div class="chip">ยืนยันแล้ว</div>
+          <div class="chip">เสร็จสิ้น</div>
+          <div class="chip">ยกเลิก</div>
+          <select class="select" style="margin-left:auto"><option>วันนี้ 25 ก.ค.</option><option>พรุ่งนี้</option><option>สัปดาห์นี้</option></select>
+          <select class="select"><option>ช่างทั้งหมด</option><option>พี่แนน</option><option>พี่โบว์</option></select>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>ลูกค้า</th><th>บริการ</th><th>ช่าง</th><th>วัน-เวลา</th><th>ราคา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cust"><div class="av">ก</div><div>กานต์ชนก<small>089-xxx-1234</small></div></div></td><td>เจลสีพื้น + เพนต์ลาย</td><td>พี่แนน</td><td>25 ก.ค. 13:00</td><td>650฿</td><td><span class="badge-st st-confirm">ยืนยันแล้ว</span></td><td><div class="row-act"><button title="ดู">👁</button><button title="เลื่อน">🕐</button><button title="ยกเลิก">✕</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ม</div><div>มนัสนันท์<small>081-xxx-5678</small></div></div></td><td>ต่อเล็บ PVC</td><td>พี่โบว์</td><td>25 ก.ค. 13:30</td><td>900฿</td><td><span class="badge-st st-wait">รอยืนยัน</span></td><td><div class="row-act"><button title="ยืนยัน" style="color:var(--success)">✓</button><button title="เลื่อน">🕐</button><button title="ยกเลิก">✕</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ธ</div><div>ธนพร<small>062-xxx-9012</small></div></div></td><td>สปามือ</td><td>พี่แนน</td><td>25 ก.ค. 14:15</td><td>350฿</td><td><span class="badge-st st-confirm">ยืนยันแล้ว</span></td><td><div class="row-act"><button title="ดู">👁</button><button title="เลื่อน">🕐</button><button title="ยกเลิก">✕</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ว</div><div>วิภาดา<small>090-xxx-3456</small></div></div></td><td>เจลถอด + ทาสีใหม่</td><td>พี่เมย์</td><td>25 ก.ค. 15:00</td><td>500฿</td><td><span class="badge-st st-wait">รอยืนยัน</span></td><td><div class="row-act"><button title="ยืนยัน" style="color:var(--success)">✓</button><button title="เลื่อน">🕐</button><button title="ยกเลิก">✕</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ณ</div><div>ณัฐริกา<small>085-xxx-7788</small></div></div></td><td>เพนต์ลาย 10 นิ้ว</td><td>พี่โบว์</td><td>25 ก.ค. 10:00</td><td>800฿</td><td><span class="badge-st st-done">เสร็จสิ้น</span></td><td><div class="row-act"><button title="ดู">👁</button><button title="ใบเสร็จ">🧾</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ป</div><div>ปิยะดา<small>087-xxx-2211</small></div></div></td><td>ต่อเล็บ + เพนต์</td><td>พี่เมย์</td><td>25 ก.ค. 11:30</td><td>1,200฿</td><td><span class="badge-st st-cancel">ยกเลิก</span></td><td><div class="row-act"><button title="ดู">👁</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== SERVICE ===== -->
+      <section class="page" id="service">
+        <div class="page-head">
+          <div><h2>จัดการบริการ</h2><p>เพิ่ม แก้ไข ราคาและระยะเวลาของบริการทำเล็บ</p></div>
+          <button class="btn btn-primary">＋ เพิ่มบริการ</button>
+        </div>
+        <div class="svc-grid">
+          <div class="svc"><div class="thumb">💅</div><div class="body"><h4>เจลสีพื้น</h4><div class="desc">ทาเจลสีพื้นเรียบ ติดทนนาน 2-3 สัปดาห์</div><div class="foot"><div class="price">350฿</div><div class="dur">⏱ 45 นาที</div></div></div></div>
+          <div class="svc"><div class="thumb">✨</div><div class="body"><h4>ต่อเล็บ PVC</h4><div class="desc">ต่อเล็บด้วยวัสดุ PVC ทรงสวยตามต้องการ</div><div class="foot"><div class="price">900฿</div><div class="dur">⏱ 90 นาที</div></div></div></div>
+          <div class="svc"><div class="thumb">🎨</div><div class="body"><h4>เพนต์ลาย</h4><div class="desc">เพนต์ลายศิลปะบนเล็บ ออกแบบเฉพาะคุณ</div><div class="foot"><div class="price">500฿</div><div class="dur">⏱ 60 นาที</div></div></div></div>
+          <div class="svc"><div class="thumb">🧖‍♀️</div><div class="body"><h4>สปามือ</h4><div class="desc">ขัดผิว บำรุง นวดผ่อนคลายมือ</div><div class="foot"><div class="price">350฿</div><div class="dur">⏱ 40 นาที</div></div></div></div>
+          <div class="svc"><div class="thumb">💎</div><div class="body"><h4>ติดอะไหล่/เพชร</h4><div class="desc">ตกแต่งเล็บด้วยอะไหล่ เพชร มุก</div><div class="foot"><div class="price">200฿</div><div class="dur">⏱ 30 นาที</div></div></div></div>
+          <div class="svc"><div class="thumb">🧴</div><div class="body"><h4>ถอดเจล/ต่อเล็บ</h4><div class="desc">ถอดเจลหรือเล็บต่อเดิมอย่างถูกวิธี</div><div class="foot"><div class="price">150฿</div><div class="dur">⏱ 20 นาที</div></div></div></div>
+        </div>
+
+        <!-- modal preview -->
+        <div class="section-label">ตัวอย่างฟอร์มเพิ่ม/แก้ไขบริการ (Modal)</div>
+        <div class="modal">
+          <div class="m-head"><h3>เพิ่มบริการใหม่</h3><button class="icon-btn" style="width:32px;height:32px;border:0">✕</button></div>
+          <div class="m-body">
+            <div class="field"><label>ชื่อบริการ</label><input placeholder="เช่น เจลสีพื้น"></div>
+            <div class="field"><label>รายละเอียด</label><textarea rows="2" placeholder="อธิบายบริการสั้น ๆ"></textarea></div>
+            <div class="field"><div class="row"><div style="flex:1"><label>ราคา (บาท)</label><input placeholder="350"></div><div style="flex:1"><label>ระยะเวลา (นาที)</label><input placeholder="45"></div></div></div>
+          </div>
+          <div class="m-foot"><button class="btn btn-ghost">ยกเลิก</button><button class="btn btn-primary">บันทึก</button></div>
+        </div>
+      </section>
+
+      <!-- ===== STAFF ===== -->
+      <section class="page" id="staff">
+        <div class="page-head">
+          <div><h2>จัดการช่าง</h2><p>ช่างเป็นทรัพยากร (resource) สำหรับจัดคิว ไม่ใช่บัญชีล็อกอิน</p></div>
+          <button class="btn btn-primary">＋ เพิ่มช่าง</button>
+        </div>
+        <div class="staff-grid">
+          <div class="staff"><div class="av">แ</div><h4>พี่แนน</h4><div class="role">ช่างอาวุโส · เพนต์ลาย</div><div class="avail free">ว่าง</div><div class="stat"><div><b>128</b><span>คิวเดือนนี้</span></div><div><b>4.9</b><span>คะแนน</span></div></div></div>
+          <div class="staff"><div class="av">บ</div><h4>พี่โบว์</h4><div class="role">ช่างต่อเล็บ</div><div class="avail busy">กำลังทำคิว</div><div class="stat"><div><b>96</b><span>คิวเดือนนี้</span></div><div><b>4.8</b><span>คะแนน</span></div></div></div>
+          <div class="staff"><div class="av">ม</div><h4>พี่เมย์</h4><div class="role">ช่างทั่วไป</div><div class="avail free">ว่าง</div><div class="stat"><div><b>74</b><span>คิวเดือนนี้</span></div><div><b>4.7</b><span>คะแนน</span></div></div></div>
+          <div class="staff"><div class="av">ฝ</div><h4>พี่ฝน</h4><div class="role">ช่างสปา/บำรุง</div><div class="avail free">ว่าง</div><div class="stat"><div><b>52</b><span>คิวเดือนนี้</span></div><div><b>4.9</b><span>คะแนน</span></div></div></div>
+        </div>
+      </section>
+
+      <!-- ===== CUSTOMER ===== -->
+      <section class="page" id="customer">
+        <div class="page-head">
+          <div><h2>ลูกค้า</h2><p>รายชื่อลูกค้าที่เชื่อมผ่าน LINE (LIFF)</p></div>
+          <div class="toolbar" style="margin:0"><div class="search" style="margin:0">🔍<input placeholder="ค้นหาชื่อ / เบอร์"></div></div>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>ลูกค้า</th><th>เบอร์โทร</th><th>จองทั้งหมด</th><th>ยอดใช้จ่าย</th><th>ล่าสุด</th><th>จัดการ</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cust"><div class="av">ก</div><div>กานต์ชนก<small>@kanchanok</small></div></div></td><td>089-xxx-1234</td><td>12 ครั้ง</td><td>7,800฿</td><td>25 ก.ค. 2569</td><td><div class="row-act"><button>👁</button><button>💬</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ม</div><div>มนัสนันท์<small>@manasnan</small></div></div></td><td>081-xxx-5678</td><td>8 ครั้ง</td><td>6,200฿</td><td>25 ก.ค. 2569</td><td><div class="row-act"><button>👁</button><button>💬</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ธ</div><div>ธนพร<small>@thanaporn</small></div></div></td><td>062-xxx-9012</td><td>5 ครั้ง</td><td>2,900฿</td><td>25 ก.ค. 2569</td><td><div class="row-act"><button>👁</button><button>💬</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av">ว</div><div>วิภาดา<small>@wipada</small></div></div></td><td>090-xxx-3456</td><td>3 ครั้ง</td><td>1,500฿</td><td>24 ก.ค. 2569</td><td><div class="row-act"><button>👁</button><button>💬</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- placeholder pages -->
+      <section class="page" id="report"><div class="page-head"><div><h2>รายงาน</h2><p>สรุปรายได้ คิว และประสิทธิภาพช่าง (ออกแบบต่อได้)</p></div></div></section>
+      <section class="page" id="setting"><div class="page-head"><div><h2>ตั้งค่าร้าน</h2><p>เวลาทำการ ข้อมูลร้าน การเชื่อมต่อ LINE (ออกแบบต่อได้)</p></div></div></section>
+    </div>
+  </div>
+</div>
+
+<script>
+const titles={dash:['แดชบอร์ด','ภาพรวมร้านประจำวันเสาร์ที่ 25 ก.ค. 2569'],queue:['จัดการคิว/นัดหมาย','ยืนยัน เลื่อน หรือยกเลิกคิว'],service:['จัดการบริการ','บริการทำเล็บทั้งหมด'],staff:['จัดการช่าง','ช่างในร้าน'],customer:['ลูกค้า','ฐานข้อมูลลูกค้า'],report:['รายงาน','สรุปผลการดำเนินงาน'],setting:['ตั้งค่าร้าน','การตั้งค่าระบบ']};
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===id));
+  document.getElementById('pageTitle').textContent=titles[id][0];
+  document.getElementById('pageSub').textContent=titles[id][1];
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>go(a.dataset.page)));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',function(){document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));this.classList.add('on')}));
+</script>
+</body>
+</html>

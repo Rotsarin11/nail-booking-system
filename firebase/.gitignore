@@ -1,0 +1,4 @@
+node_modules/
+# Secret admin key — must NOT be committed. Rotate it in the Firebase console
+# and load it via GOOGLE_APPLICATION_CREDENTIALS on the server instead.
+serviceAccountKey.json

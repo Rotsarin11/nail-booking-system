@@ -1,0 +1,120 @@
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import * as ds from '../lib/dataSource.js'
+import { blockMinutes } from '../lib/slots.js'
+import { FIREBASE_ENABLED, watchMyBookings, watchCollection } from '../lib/firebaseClient.js'
+
+const BookingContext = createContext(null)
+export const useBooking = () => useContext(BookingContext)
+
+const emptyDraft = { serviceIds: [], staffId: 'any', date: null, time: null, note: '' }
+
+export function BookingProvider({ children }) {
+  // Catalog + session, loaded from the API (or mock fallback) on mount.
+  const [catalog, setCatalog] = useState({ services: [], staff: [], closures: [], shop: ds.shop, currentUser: ds.currentUser })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [myBookings, setMyBookings] = useState([])
+  const [draft, setDraft] = useState(emptyDraft)
+
+  const { services, staff, closures, shop, currentUser } = catalog
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const cat = await ds.loadCatalog()
+        if (!alive) return
+        setCatalog(cat)
+        // With Firestore realtime on, the snapshot listener populates bookings.
+        if (!FIREBASE_ENABLED) {
+          const mine = await ds.loadMyBookings(cat.currentUser.id)
+          if (!alive) return
+          setMyBookings(mine)
+        }
+      } catch (e) {
+        if (alive) setError(e.message)
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  const reloadBookings = async () => {
+    const mine = await ds.loadMyBookings(currentUser.id)
+    setMyBookings(mine)
+  }
+
+  // True realtime: subscribe to this customer's bookings via Firestore onSnapshot.
+  useEffect(() => {
+    if (!FIREBASE_ENABLED || !currentUser?.id) return
+    return watchMyBookings(currentUser.id, setMyBookings)
+  }, [currentUser?.id])
+
+  // Realtime catalog: services / staff / closures reflect admin edits instantly.
+  useEffect(() => {
+    if (!FIREBASE_ENABLED) return
+    const unsub = [
+      watchCollection('services', (rows) => setCatalog((c) => ({ ...c, services: rows.filter((s) => s.isActive !== false) }))),
+      watchCollection('staff', (rows) => setCatalog((c) => ({ ...c, staff: rows }))),
+      watchCollection('shopClosures', (rows) => setCatalog((c) => ({ ...c, closures: rows }))),
+    ]
+    return () => unsub.forEach((u) => u && u())
+  }, [])
+
+  // Fallback (no Firebase web config): poll the API + refetch on focus.
+  useEffect(() => {
+    if (!ds.API_ENABLED || FIREBASE_ENABLED || !currentUser?.id) return
+    const timer = setInterval(reloadBookings, 8000)
+    const onFocus = () => reloadBookings()
+    window.addEventListener('focus', onFocus)
+    return () => { clearInterval(timer); window.removeEventListener('focus', onFocus) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id])
+
+  const selectedServices = useMemo(
+    () => draft.serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean),
+    [draft.serviceIds, services],
+  )
+  const totalPrice = useMemo(() => selectedServices.reduce((s, x) => s + x.price, 0), [selectedServices])
+  const totalMinutes = useMemo(() => blockMinutes(selectedServices), [selectedServices])
+
+  const toggleService = (id) =>
+    setDraft((d) => ({
+      ...d,
+      serviceIds: d.serviceIds.includes(id) ? d.serviceIds.filter((x) => x !== id) : [...d.serviceIds, id],
+      time: null,
+    }))
+  const setStaff = (staffId) => setDraft((d) => ({ ...d, staffId, time: null }))
+  const setDate = (date) => setDraft((d) => ({ ...d, date, time: null }))
+  const setTime = (time) => setDraft((d) => ({ ...d, time }))
+  const setNote = (note) => setDraft((d) => ({ ...d, note }))
+  const resetDraft = () => setDraft(emptyDraft)
+  const startBookingWith = (serviceId) => setDraft({ ...emptyDraft, serviceIds: serviceId ? [serviceId] : [] })
+
+  // Availability for the current draft's date (server-authoritative when API is on).
+  const availability = (date) =>
+    ds.getAvailability({ date, serviceIds: draft.serviceIds, staffId: draft.staffId }, { services, staff, closures })
+  const days = (count = 14) => ds.daysStrip(count, closures)
+
+  // Commit the draft; the returned booking has the real (possibly auto-assigned) staff.
+  const confirmBooking = async () => {
+    const booking = await ds.createBooking(draft, { services, staff, closures })
+    setMyBookings((list) => [booking, ...list.filter((b) => b.id !== booking.id)])
+    resetDraft()
+    return booking
+  }
+
+  const cancelBooking = async (id) => {
+    await ds.cancelBooking(id)
+    setMyBookings((list) => list.map((b) => (b.id === id ? { ...b, status: 'cancelled' } : b)))
+  }
+
+  const value = {
+    services, staff, closures, shop, currentUser, loading, error,
+    myBookings, draft, selectedServices, totalPrice, totalMinutes,
+    toggleService, setStaff, setDate, setTime, setNote, resetDraft, startBookingWith,
+    availability, days, confirmBooking, cancelBooking, reloadBookings,
+  }
+  return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
+}

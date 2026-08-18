@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nail Studio — ระบบหลังบ้าน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink-50:#FFF6F9; --pink-100:#FDEBF1; --pink-200:#FBD9E6; --pink-300:#F6BBD2;
+  --pink-400:#EF9BBE; --pink-500:#E67CA6; --pink-600:#D65F8E;
+  --plum:#7A5563; --ink:#4A3B42; --muted:#9B8A91; --line:#F2DFE7;
+  --white:#FFFFFF; --green:#5BB98C; --amber:#E0A64B; --red:#E06A7C; --blue:#7BA7D9;
+  --shadow:0 8px 24px rgba(214,95,142,.10); --shadow-sm:0 2px 8px rgba(214,95,142,.08);
+  --r:16px; --r-sm:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Prompt',sans-serif;background:var(--pink-50);color:var(--ink);font-size:14px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{width:248px;background:var(--white);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:12px;padding:6px 10px 20px}
+.brand .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--pink-400),var(--pink-600));display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;box-shadow:var(--shadow-sm)}
+.brand .name{font-weight:600;font-size:16px;color:var(--plum);line-height:1.1}
+.brand .name small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.nav-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:14px 12px 6px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;cursor:pointer;color:var(--plum);font-weight:500;transition:.15s;border:1px solid transparent}
+.nav-item:hover{background:var(--pink-50)}
+.nav-item.active{background:linear-gradient(135deg,var(--pink-100),var(--pink-200));color:var(--pink-600);border-color:var(--pink-200)}
+.nav-item .ic{width:20px;height:20px;flex-shrink:0}
+.nav-item .badge{margin-left:auto;background:var(--pink-500);color:#fff;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+.nav-item.tag-existing{opacity:.65}
+.nav-item.tag-existing .badge{background:var(--muted)}
+.side-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:var(--pink-50)}
+.side-foot .av{width:34px;height:34px;border-radius:50%;background:var(--pink-300);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
+.side-foot .info{font-size:12px}.side-foot .info b{display:block;color:var(--ink);font-weight:600}.side-foot .info span{color:var(--muted)}
+
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:16px;padding:20px 32px;background:var(--pink-50);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
+.topbar h1{font-size:22px;font-weight:600;color:var(--plum)}
+.topbar .sub{font-size:12px;color:var(--muted);font-weight:400}
+.search{margin-left:auto;position:relative}
+.search input{border:1px solid var(--line);background:#fff;border-radius:24px;padding:9px 16px 9px 38px;width:240px;font-family:inherit;font-size:13px;color:var(--ink);outline:none}
+.search input:focus{border-color:var(--pink-300)}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.bell{width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--plum);cursor:pointer;position:relative}
+.bell .dot{position:absolute;top:9px;right:10px;width:8px;height:8px;background:var(--pink-500);border-radius:50%;border:2px solid #fff}
+.content{padding:28px 32px;flex:1}
+.screen{display:none;animation:fade .25s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Buttons */
+.btn{font-family:inherit;font-size:13px;font-weight:500;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.btn-primary{background:linear-gradient(135deg,var(--pink-400),var(--pink-600));color:#fff;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--plum)}
+.btn-ghost:hover{background:var(--pink-50)}
+.btn-sm{padding:6px 11px;font-size:12px;border-radius:8px}
+.btn-ok{background:var(--pink-100);color:var(--pink-600);border:1px solid var(--pink-200)}
+.btn-danger{background:#fff;color:var(--red);border:1px solid #F5D6DC}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;background:#fff;border:1px solid var(--line);color:var(--muted);border-radius:8px}
+.btn-icon:hover{color:var(--pink-600);border-color:var(--pink-200)}
+
+/* Cards & stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow-sm)}
+.stat .t{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.stat .t .ci{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--pink-100);color:var(--pink-600)}
+.stat .v{font-size:26px;font-weight:600;color:var(--plum);margin-top:10px}
+.stat .d{font-size:11px;margin-top:2px}
+.stat .d.up{color:var(--green)}.stat .d.down{color:var(--red)}
+
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid var(--line)}
+.panel-head h3{font-size:16px;font-weight:600;color:var(--plum)}
+.panel-head .cnt{font-size:12px;color:var(--muted);background:var(--pink-50);padding:2px 10px;border-radius:20px}
+.panel-head .right{margin-left:auto;display:flex;gap:10px}
+
+/* Tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;border:1px solid var(--line);color:var(--muted)}
+.tab.active{background:var(--pink-100);color:var(--pink-600);border-color:var(--pink-200)}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding:14px 22px;background:var(--pink-50)}
+td{padding:15px 22px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle}
+tr:hover td{background:var(--pink-50)}
+.cust{display:flex;align-items:center;gap:11px}
+.cust .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;flex-shrink:0}
+.cust b{font-weight:500;color:var(--ink)}.cust span{display:block;font-size:11px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 11px;border-radius:20px}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-wait{background:#FDF3E3;color:#C8892F}
+.p-ok{background:#E7F5EE;color:#3E9B6E}
+.p-done{background:#EAF0FA;color:#5D86C4}
+.p-cancel{background:#FBE9EC;color:#C85668}
+.p-off{background:#F1ECEF;color:#8B7A83}
+.rowacts{display:flex;gap:7px}
+.money{font-weight:600;color:var(--plum)}
+.svc-ic{width:34px;height:34px;border-radius:9px;background:var(--pink-100);display:flex;align-items:center;justify-content:center;font-size:16px}
+
+/* Tech cards */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.tech{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px;text-align:center;box-shadow:var(--shadow-sm);position:relative}
+.tech .st{position:absolute;top:14px;right:14px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
+.tech .ph{width:72px;height:72px;border-radius:50%;margin:6px auto 12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:600}
+.tech h4{font-size:15px;font-weight:600;color:var(--ink)}
+.tech .role{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tech .rate{color:var(--amber);font-size:13px;margin-bottom:14px}
+.tech .rate span{color:var(--muted);font-size:11px}
+.tech .foot{display:flex;gap:8px}
+.tech .foot .btn{flex:1;justify-content:center}
+.tech.add{border:2px dashed var(--pink-200);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--pink-500);cursor:pointer;min-height:250px;background:var(--pink-50)}
+.tech.add .plus{width:52px;height:52px;border-radius:50%;background:var(--white);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+
+/* Notifications */
+.notif{display:flex;gap:14px;padding:16px 22px;border-top:1px solid var(--line);cursor:pointer}
+.notif:hover{background:var(--pink-50)}
+.notif.unread{background:var(--pink-50)}
+.notif .ni{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.notif .body{flex:1}
+.notif .body b{font-weight:500;color:var(--ink)}
+.notif .body p{font-size:12.5px;color:var(--muted);margin-top:2px}
+.notif .time{font-size:11px;color:var(--muted);white-space:nowrap}
+.notif .udot{width:8px;height:8px;border-radius:50%;background:var(--pink-500);align-self:center}
+
+/* Settings form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 26px;padding:24px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12.5px;font-weight:500;color:var(--plum)}
+.field input,.field textarea,.field select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;color:var(--ink);outline:none;background:#fff}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink-300)}
+.field textarea{resize:vertical;min-height:76px}
+.hours{display:flex;align-items:center;gap:10px}
+.hours span{color:var(--muted)}
+.switch{position:relative;width:44px;height:26px;background:var(--pink-200);border-radius:20px;cursor:pointer;transition:.2s}
+.switch.on{background:var(--pink-500)}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s}
+.switch.on::after{left:21px}
+.toggle-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.toggle-row:last-child{border:none}
+.toggle-row .tinfo b{font-weight:500;color:var(--ink);font-size:13px}
+.toggle-row .tinfo p{font-size:11.5px;color:var(--muted)}
+.toggle-row .switch{margin-left:auto}
+.form-foot{display:flex;justify-content:flex-end;gap:12px;padding:18px 24px;border-top:1px solid var(--line);background:var(--pink-50)}
+.sec-title{font-size:13px;font-weight:600;color:var(--pink-600);grid-column:1/-1;padding-top:6px}
+
+/* Calendar */
+.hol-wrap{display:grid;grid-template-columns:320px 1fr;gap:24px}
+.cal{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow-sm);height:fit-content}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-head b{color:var(--plum);font-weight:600}
+.cal-nav{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--muted)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-grid .dow{font-size:11px;color:var(--muted);padding:6px 0}
+.cal-grid .day{padding:8px 0;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.cal-grid .day:hover{background:var(--pink-50)}
+.cal-grid .day.off{background:var(--pink-100);color:var(--pink-600);font-weight:600}
+.cal-grid .day.leave{background:#FDF3E3;color:#C8892F;font-weight:600}
+.cal-grid .day.muted{color:var(--line)}
+.legend{display:flex;gap:16px;margin-top:16px;font-size:11.5px;color:var(--muted)}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+@media(max-width:960px){.stats{grid-template-columns:repeat(2,1fr)}.hol-wrap{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">💅</div>
+      <div class="name">Nail Studio<small>ระบบจัดการร้าน</small></div>
+    </div>
+    <div class="nav-label">เมนูหลัก</div>
+    <div class="nav-item tag-existing" data-screen="dashboard">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      แดชบอร์ด <span class="badge">มีอยู่แล้ว</span>
+    </div>
+    <div class="nav-item active" data-screen="booking">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14l2.5 2.5L16 12" stroke-width="1.6"/></svg>
+      การจอง <span class="badge">6</span>
+    </div>
+    <div class="nav-item" data-screen="tech">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+      ช่าง
+    </div>
+    <div class="nav-item" data-screen="service">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9.5 3l1.6 4.6L16 9l-4.9 1.4L9.5 15l-1.6-4.6L3 9l4.9-1.4z"/><circle cx="17.5" cy="16.5" r="2.6"/></svg>
+      บริการ
+    </div>
+    <div class="nav-item" data-screen="customer">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.4 2.9-5.2 6.5-5.2s6.5 1.8 6.5 5.2"/><path d="M17 8.5a3 3 0 0 1 0 5M19 20c0-2.4-1-3.9-2.6-4.8"/></svg>
+      ลูกค้า
+    </div>
+    <div class="nav-item" data-screen="holiday">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M9 15l6-4M15 15l-6-4" stroke-width="1.5"/></svg>
+      วันหยุด / วันลา
+    </div>
+    <div class="nav-item" data-screen="notify">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      การแจ้งเตือน <span class="badge">3</span>
+    </div>
+    <div class="nav-item" data-screen="setting">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.8 19.7l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 15a1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      การตั้งค่า
+    </div>
+    <div class="side-foot">
+      <div class="av">แอ</div>
+      <div class="info"><b>แอดมิน ร้าน</b><span>ผู้ดูแลระบบ</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pgTitle">การจอง</h1>
+        <div class="sub" id="pgSub">จัดการคิวและการนัดหมายของลูกค้า</div>
+      </div>
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="ค้นหา...">
+      </div>
+      <div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></div>
+    </div>
+
+    <div class="content">
+
+      <!-- ================= BOOKING ================= -->
+      <section class="screen active" id="booking">
+        <div class="stats">
+          <div class="stat"><div class="t"><span class="ci">📅</span>คิววันนี้</div><div class="v">14</div><div class="d up">▲ 3 จากเมื่อวาน</div></div>
+          <div class="stat"><div class="t"><span class="ci">⏳</span>รอยืนยัน</div><div class="v">6</div><div class="d down">ต้องดำเนินการ</div></div>
+          <div class="stat"><div class="t"><span class="ci">✅</span>เสร็จสิ้นแล้ว</div><div class="v">31</div><div class="d up">สัปดาห์นี้</div></div>
+          <div class="stat"><div class="t"><span class="ci">💰</span>รายได้วันนี้</div><div class="v">8,450฿</div><div class="d up">▲ 12%</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>รายการจอง</h3><span class="cnt">42 รายการ</span>
+            <div class="right">
+              <div class="tabs">
+                <div class="tab active">ทั้งหมด</div><div class="tab">รอยืนยัน</div><div class="tab">ยืนยันแล้ว</div><div class="tab">เสร็จสิ้น</div><div class="tab">ยกเลิก</div>
+              </div>
+              <button class="btn btn-primary btn-sm">+ เพิ่มการจอง</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>รหัสคิว</th><th>ลูกค้า</th><th>บริการ</th><th>ช่าง</th><th>วัน–เวลา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <tbody>
+              <tr><td><b>#BK-1042</b></td><td><div class="cust"><div class="av" style="background:#EF9BBE">ณ</div><div><b>ณิชา ทองดี</b><span>089-123-4567</span></div></div></td><td>เจลสีพื้น + ทาสี</td><td>พิมพ์</td><td>26 ก.ค. · 10:30</td><td><span class="pill p-wait">รอยืนยัน</span></td><td><div class="rowacts"><button class="btn btn-sm btn-ok">ยืนยัน</button><button class="btn btn-sm btn-danger">ยกเลิก</button></div></td></tr>
+              <tr><td><b>#BK-1041</b></td><td><div class="cust"><div class="av" style="background:#7BA7D9">ก</div><div><b>กมลชนก แสนสุข</b><span>081-889-2210</span></div></div></td><td>ต่อเล็บ PVC + เพ้นท์</td><td>ฟ้า</td><td>26 ก.ค. · 11:00</td><td><span class="pill p-ok">ยืนยันแล้ว</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-sm btn-danger">ยกเลิก</button></div></td></tr>
+              <tr><td><b>#BK-1040</b></td><td><div class="cust"><div class="av" style="background:#5BB98C">ส</div><div><b>สุดารัตน์ พรหม</b><span>062-445-1180</span></div></div></td><td>สปามือ + ทาสีเจล</td><td>พิมพ์</td><td>26 ก.ค. · 13:30</td><td><span class="pill p-ok">ยืนยันแล้ว</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-sm btn-danger">ยกเลิก</button></div></td></tr>
+              <tr><td><b>#BK-1039</b></td><td><div class="cust"><div class="av" style="background:#E0A64B">ป</div><div><b>ปาริชาติ ใจงาม</b><span>090-772-6634</span></div></div></td><td>ล้างเล็บเจล</td><td>มะปราง</td><td>25 ก.ค. · 16:00</td><td><span class="pill p-done">เสร็จสิ้น</span></td><td><div class="rowacts"><button class="btn btn-icon">👁</button></div></td></tr>
+              <tr><td><b>#BK-1038</b></td><td><div class="cust"><div class="av" style="background:#D65F8E">ว</div><div><b>วรรณิษา ศรีทอง</b><span>085-330-9912</span></div></div></td><td>ต่อเล็บอะคริลิค</td><td>ฟ้า</td><td>25 ก.ค. · 14:00</td><td><span class="pill p-cancel">ยกเลิก</span></td><td><div class="rowacts"><button class="btn btn-icon">👁</button></div></td></tr>
+              <tr><td><b>#BK-1037</b></td><td><div class="cust"><div class="av" style="background:#9B8A91">อ</div><div><b>อรพรรณ มีสุข</b><span>098-114-5567</span></div></div></td><td>เจลสีพื้น</td><td>มะปราง</td><td>27 ก.ค. · 09:30</td><td><span class="pill p-wait">รอยืนยัน</span></td><td><div class="rowacts"><button class="btn btn-sm btn-ok">ยืนยัน</button><button class="btn btn-sm btn-danger">ยกเลิก</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= TECH ================= -->
+      <section class="screen" id="tech">
+        <div class="panel-head" style="border:none;padding:0 0 20px">
+          <h3>รายชื่อช่าง</h3><span class="cnt">4 คน</span>
+          <div class="right"><button class="btn btn-primary btn-sm">+ เพิ่มช่าง</button></div>
+        </div>
+        <div class="grid-cards">
+          <div class="tech"><span class="st p-ok" style="background:#E7F5EE;color:#3E9B6E">ว่าง</span><div class="ph" style="background:#EF9BBE">พ</div><h4>พิมพ์ชนก</h4><div class="role">ช่างอาวุโส · เจล/เพ้นท์</div><div class="rate">★★★★★ <span>(128 รีวิว)</span></div><div class="foot"><button class="btn btn-sm btn-ghost">โปรไฟล์</button><button class="btn btn-sm btn-ok">ตารางงาน</button></div></div>
+          <div class="tech"><span class="st p-wait" style="background:#FDF3E3;color:#C8892F">มีคิว</span><div class="ph" style="background:#7BA7D9">ฟ</div><h4>ฟ้าใส</h4><div class="role">ช่างต่อเล็บ · PVC/อะคริลิค</div><div class="rate">★★★★☆ <span>(96 รีวิว)</span></div><div class="foot"><button class="btn btn-sm btn-ghost">โปรไฟล์</button><button class="btn btn-sm btn-ok">ตารางงาน</button></div></div>
+          <div class="tech"><span class="st p-ok" style="background:#E7F5EE;color:#3E9B6E">ว่าง</span><div class="ph" style="background:#5BB98C">ม</div><h4>มะปราง</h4><div class="role">ช่างทั่วไป · สปา/ทาสี</div><div class="rate">★★★★★ <span>(74 รีวิว)</span></div><div class="foot"><button class="btn btn-sm btn-ghost">โปรไฟล์</button><button class="btn btn-sm btn-ok">ตารางงาน</button></div></div>
+          <div class="tech"><span class="st p-off" style="background:#F1ECEF;color:#8B7A83">ลาวันนี้</span><div class="ph" style="background:#E0A64B">น</div><h4>น้ำหวาน</h4><div class="role">ช่างฝึกหัด · ทาสีพื้น</div><div class="rate">★★★★☆ <span>(31 รีวิว)</span></div><div class="foot"><button class="btn btn-sm btn-ghost">โปรไฟล์</button><button class="btn btn-sm btn-ok">ตารางงาน</button></div></div>
+          <div class="tech add"><div class="plus">+</div><b>เพิ่มช่างใหม่</b></div>
+        </div>
+      </section>
+
+      <!-- ================= SERVICE ================= -->
+      <section class="screen" id="service">
+        <div class="stats">
+          <div class="stat"><div class="t"><span class="ci">💅</span>บริการทั้งหมด</div><div class="v">18</div><div class="d">4 หมวดหมู่</div></div>
+          <div class="stat"><div class="t"><span class="ci">⭐</span>ยอดนิยม</div><div class="v">เจลสีพื้น</div><div class="d up">จอง 42 ครั้ง/เดือน</div></div>
+          <div class="stat"><div class="t"><span class="ci">⏱</span>เวลาเฉลี่ย</div><div class="v">55 นาที</div><div class="d">ต่อการบริการ</div></div>
+          <div class="stat"><div class="t"><span class="ci">💵</span>ราคาเฉลี่ย</div><div class="v">620฿</div><div class="d up">▲ 5%</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>รายการบริการ</h3><span class="cnt">18 รายการ</span><div class="right"><button class="btn btn-ghost btn-sm">หมวดหมู่</button><button class="btn btn-primary btn-sm">+ เพิ่มบริการ</button></div></div>
+          <table>
+            <thead><tr><th>บริการ</th><th>หมวดหมู่</th><th>ราคา</th><th>ระยะเวลา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cust"><div class="svc-ic">💅</div><div><b>เจลสีพื้น</b><span>ทาสีเจลติดทน 2-3 สัปดาห์</span></div></div></td><td>ทาสีเจล</td><td class="money">450฿</td><td>45 นาที</td><td><span class="pill p-ok">เปิดใช้</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              <tr><td><div class="cust"><div class="svc-ic">🎨</div><div><b>เพ้นท์ลาย</b><span>วาดลวดลายตามแบบ</span></div></div></td><td>เพ้นท์</td><td class="money">150฿/นิ้ว</td><td>30 นาที</td><td><span class="pill p-ok">เปิดใช้</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              <tr><td><div class="cust"><div class="svc-ic">💎</div><div><b>ต่อเล็บ PVC</b><span>ต่อความยาวด้วย PVC</span></div></div></td><td>ต่อเล็บ</td><td class="money">800฿</td><td>90 นาที</td><td><span class="pill p-ok">เปิดใช้</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              <tr><td><div class="cust"><div class="svc-ic">✨</div><div><b>ต่อเล็บอะคริลิค</b><span>แข็งแรง ทนทาน</span></div></div></td><td>ต่อเล็บ</td><td class="money">950฿</td><td>120 นาที</td><td><span class="pill p-ok">เปิดใช้</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              <tr><td><div class="cust"><div class="svc-ic">🧴</div><div><b>สปามือ + บำรุง</b><span>ขัดผิว มาส์ก นวด</span></div></div></td><td>สปา</td><td class="money">350฿</td><td>40 นาที</td><td><span class="pill p-ok">เปิดใช้</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              <tr><td><div class="cust"><div class="svc-ic">🧼</div><div><b>ล้างเล็บเจล</b><span>ถอดเจลเดิมออก</span></div></div></td><td>ทั่วไป</td><td class="money">120฿</td><td>20 นาที</td><td><span class="pill p-off">ปิดชั่วคราว</span></td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= CUSTOMER ================= -->
+      <section class="screen" id="customer">
+        <div class="stats">
+          <div class="stat"><div class="t"><span class="ci">👥</span>ลูกค้าทั้งหมด</div><div class="v">328</div><div class="d up">▲ 12 เดือนนี้</div></div>
+          <div class="stat"><div class="t"><span class="ci">💖</span>ลูกค้าประจำ</div><div class="v">86</div><div class="d">จอง ≥ 5 ครั้ง</div></div>
+          <div class="stat"><div class="t"><span class="ci">🆕</span>ลูกค้าใหม่</div><div class="v">12</div><div class="d up">เดือนนี้</div></div>
+          <div class="stat"><div class="t"><span class="ci">💰</span>ยอดใช้จ่ายเฉลี่ย</div><div class="v">2,140฿</div><div class="d">ต่อคน</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>ฐานข้อมูลลูกค้า</h3><span class="cnt">328 คน</span><div class="right"><button class="btn btn-ghost btn-sm">⬇ ส่งออก</button><button class="btn btn-primary btn-sm">+ เพิ่มลูกค้า</button></div></div>
+          <table>
+            <thead><tr><th>ลูกค้า</th><th>LINE</th><th>จำนวนครั้ง</th><th>ยอดใช้จ่ายรวม</th><th>มาล่าสุด</th><th>จัดการ</th></tr></thead>
+            <tbody>
+              <tr><td><div class="cust"><div class="av" style="background:#EF9BBE">ณ</div><div><b>ณิชา ทองดี</b><span>089-123-4567</span></div></div></td><td>@nicha_t</td><td>18 ครั้ง</td><td class="money">14,200฿</td><td>26 ก.ค. 2026</td><td><div class="rowacts"><button class="btn btn-icon">👁</button><button class="btn btn-icon">✎</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av" style="background:#7BA7D9">ก</div><div><b>กมลชนก แสนสุข</b><span>081-889-2210</span></div></div></td><td>@kamon.ss</td><td>11 ครั้ง</td><td class="money">9,650฿</td><td>26 ก.ค. 2026</td><td><div class="rowacts"><button class="btn btn-icon">👁</button><button class="btn btn-icon">✎</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av" style="background:#5BB98C">ส</div><div><b>สุดารัตน์ พรหม</b><span>062-445-1180</span></div></div></td><td>@sudarat.p</td><td>7 ครั้ง</td><td class="money">5,300฿</td><td>26 ก.ค. 2026</td><td><div class="rowacts"><button class="btn btn-icon">👁</button><button class="btn btn-icon">✎</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av" style="background:#E0A64B">ป</div><div><b>ปาริชาติ ใจงาม</b><span>090-772-6634</span></div></div></td><td>@parichat</td><td>24 ครั้ง</td><td class="money">21,800฿</td><td>25 ก.ค. 2026</td><td><div class="rowacts"><button class="btn btn-icon">👁</button><button class="btn btn-icon">✎</button></div></td></tr>
+              <tr><td><div class="cust"><div class="av" style="background:#D65F8E">ว</div><div><b>วรรณิษา ศรีทอง</b><span>085-330-9912</span></div></div></td><td>@wannisa</td><td>3 ครั้ง</td><td class="money">1,950฿</td><td>25 ก.ค. 2026</td><td><div class="rowacts"><button class="btn btn-icon">👁</button><button class="btn btn-icon">✎</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= HOLIDAY ================= -->
+      <section class="screen" id="holiday">
+        <div class="panel-head" style="border:none;padding:0 0 20px">
+          <h3>วันหยุด & วันลา</h3><span class="cnt">กรกฎาคม 2026</span>
+          <div class="right"><button class="btn btn-ghost btn-sm">📅 ปิดร้านทั้งวัน</button><button class="btn btn-primary btn-sm">+ เพิ่มวันหยุด/วันลา</button></div>
+        </div>
+        <div class="hol-wrap">
+          <div class="cal">
+            <div class="cal-head"><button class="cal-nav">‹</button><b>กรกฎาคม 2026</b><button class="cal-nav">›</button></div>
+            <div class="cal-grid">
+              <div class="dow">อา</div><div class="dow">จ</div><div class="dow">อ</div><div class="dow">พ</div><div class="dow">พฤ</div><div class="dow">ศ</div><div class="dow">ส</div>
+              <div class="day muted">29</div><div class="day muted">30</div><div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day">5</div>
+              <div class="day off">6</div><div class="day">7</div><div class="day">8</div><div class="day">9</div><div class="day">10</div><div class="day">11</div><div class="day">12</div>
+              <div class="day off">13</div><div class="day">14</div><div class="day">15</div><div class="day leave">16</div><div class="day">17</div><div class="day">18</div><div class="day">19</div>
+              <div class="day off">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div><div class="day">24</div><div class="day">25</div><div class="day">26</div>
+              <div class="day off">27</div><div class="day">28</div><div class="day leave">29</div><div class="day">30</div><div class="day">31</div><div class="day muted">1</div><div class="day muted">2</div>
+            </div>
+            <div class="legend"><span><i style="background:var(--pink-300)"></i>ปิดร้าน</span><span><i style="background:#E0A64B"></i>ช่างลา</span></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>รายการที่บันทึกไว้</h3><span class="cnt">5 รายการ</span></div>
+            <table>
+              <thead><tr><th>วันที่</th><th>ประเภท</th><th>ผู้เกี่ยวข้อง</th><th>เหตุผล</th><th>จัดการ</th></tr></thead>
+              <tbody>
+                <tr><td><b>อา 6 ก.ค.</b></td><td><span class="pill p-cancel">ปิดร้าน</span></td><td>ทั้งร้าน</td><td>หยุดประจำสัปดาห์</td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+                <tr><td><b>พ 16 ก.ค.</b></td><td><span class="pill p-wait">ช่างลา</span></td><td>น้ำหวาน</td><td>ลากิจ</td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+                <tr><td><b>อา 20 ก.ค.</b></td><td><span class="pill p-cancel">ปิดร้าน</span></td><td>ทั้งร้าน</td><td>หยุดประจำสัปดาห์</td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+                <tr><td><b>อ 29 ก.ค.</b></td><td><span class="pill p-wait">ช่างลา</span></td><td>ฟ้าใส</td><td>ลาป่วย</td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+                <tr><td><b>อา 27 ก.ค.</b></td><td><span class="pill p-cancel">ปิดร้าน</span></td><td>ทั้งร้าน</td><td>หยุดประจำสัปดาห์</td><td><div class="rowacts"><button class="btn btn-icon">✎</button><button class="btn btn-icon">🗑</button></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= NOTIFY ================= -->
+      <section class="screen" id="notify">
+        <div class="panel-head" style="border:none;padding:0 0 20px">
+          <h3>การแจ้งเตือน</h3><span class="cnt">3 ยังไม่อ่าน</span>
+          <div class="right"><button class="btn btn-ghost btn-sm">✓ อ่านทั้งหมด</button><button class="btn btn-ghost btn-sm">⚙ ตั้งค่า</button></div>
+        </div>
+        <div class="panel">
+          <div class="notif unread"><div class="ni" style="background:#FDF3E3;color:#C8892F">📅</div><div class="body"><b>มีการจองใหม่รอยืนยัน</b><p>ณิชา ทองดี จองบริการ "เจลสีพื้น + ทาสี" วันที่ 26 ก.ค. 10:30</p></div><div class="time">5 นาทีที่แล้ว</div><div class="udot"></div></div>
+          <div class="notif unread"><div class="ni" style="background:#FBE9EC;color:#C85668">❌</div><div class="body"><b>ลูกค้ายกเลิกการจอง</b><p>วรรณิษา ศรีทอง ยกเลิก #BK-1038 (ต่อเล็บอะคริลิค)</p></div><div class="time">32 นาทีที่แล้ว</div><div class="udot"></div></div>
+          <div class="notif unread"><div class="ni" style="background:#FDF3E3;color:#C8892F">🌴</div><div class="body"><b>คำขอลาของช่าง</b><p>ฟ้าใส ขอลาป่วยวันที่ 29 ก.ค. — รอการอนุมัติ</p></div><div class="time">1 ชั่วโมงที่แล้ว</div><div class="udot"></div></div>
+          <div class="notif"><div class="ni" style="background:#E7F5EE;color:#3E9B6E">✅</div><div class="body"><b>บริการเสร็จสิ้น</b><p>ปาริชาติ ใจงาม เสร็จสิ้นบริการ "ล้างเล็บเจล" กับช่างมะปราง</p></div><div class="time">เมื่อวานนี้</div></div>
+          <div class="notif"><div class="ni" style="background:#EAF0FA;color:#5D86C4">⭐</div><div class="body"><b>รีวิวใหม่ 5 ดาว</b><p>กมลชนก แสนสุข ให้คะแนนช่างพิมพ์ชนก "บริการดีมากค่ะ ประทับใจ"</p></div><div class="time">เมื่อวานนี้</div></div>
+          <div class="notif"><div class="ni" style="background:#F1ECEF;color:#8B7A83">💰</div><div class="body"><b>สรุปยอดรายวัน</b><p>ยอดขายวันที่ 25 ก.ค. รวม 9,240฿ จาก 16 คิว</p></div><div class="time">2 วันที่แล้ว</div></div>
+        </div>
+      </section>
+
+      <!-- ================= SETTING ================= -->
+      <section class="screen" id="setting">
+        <div class="panel" style="max-width:860px">
+          <div class="panel-head"><h3>ตั้งค่าร้าน</h3></div>
+          <div class="form-grid">
+            <div class="sec-title">ข้อมูลร้าน</div>
+            <div class="field"><label>ชื่อร้าน</label><input value="Nail Studio by Pim"></div>
+            <div class="field"><label>เบอร์โทรร้าน</label><input value="02-123-4567"></div>
+            <div class="field full"><label>ที่อยู่</label><textarea>123/45 ซอยสุขุมวิท 24 แขวงคลองตัน เขตคลองเตย กรุงเทพฯ 10110</textarea></div>
+            <div class="field"><label>เวลาทำการ</label><div class="hours"><input type="time" value="10:00"><span>ถึง</span><input type="time" value="20:00"></div></div>
+            <div class="field"><label>วันหยุดประจำ</label><select><option>ทุกวันอาทิตย์</option><option>ทุกวันจันทร์</option><option>ไม่มีวันหยุดประจำ</option></select></div>
+
+            <div class="sec-title">การจองออนไลน์</div>
+            <div class="field"><label>ระยะจองล่วงหน้า (วัน)</label><input type="number" value="30"></div>
+            <div class="field"><label>ช่วงเวลาต่อคิว (นาที)</label><input type="number" value="30"></div>
+            <div class="field full" style="gap:0">
+              <div class="toggle-row"><div class="tinfo"><b>เปิดรับจองออนไลน์ผ่าน LINE</b><p>ลูกค้าจองผ่าน LIFF ได้ด้วยตนเอง</p></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="toggle-row"><div class="tinfo"><b>ยืนยันการจองอัตโนมัติ</b><p>ระบบยืนยันคิวทันทีโดยไม่ต้องรอแอดมิน</p></div><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+              <div class="toggle-row"><div class="tinfo"><b>แจ้งเตือนลูกค้าก่อนถึงคิว</b><p>ส่งข้อความเตือนล่วงหน้า 1 ชั่วโมง</p></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+          </div>
+          <div class="form-foot"><button class="btn btn-ghost">ยกเลิก</button><button class="btn btn-primary">บันทึกการตั้งค่า</button></div>
+        </div>
+      </section>
+
+      <!-- placeholder dashboard -->
+      <section class="screen" id="dashboard">
+        <div class="panel" style="padding:60px;text-align:center;color:var(--muted)">
+          <div style="font-size:40px;margin-bottom:12px">📊</div>
+          <h3 style="color:var(--plum);margin-bottom:6px">หน้าแดชบอร์ด</h3>
+          <p>หน้านี้มีอยู่แล้วในดีไซน์เดิม — ไม่ได้สร้างซ้ำในไฟล์นี้</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const titles = {
+  dashboard:['แดชบอร์ด','ภาพรวมร้าน'],
+  booking:['การจอง','จัดการคิวและการนัดหมายของลูกค้า'],
+  tech:['ช่าง','จัดการข้อมูลช่างและตารางงาน'],
+  service:['บริการ','จัดการรายการบริการ ราคา และระยะเวลา'],
+  customer:['ลูกค้า','ฐานข้อมูลและประวัติการใช้บริการ'],
+  holiday:['วันหยุด / วันลา','กำหนดวันปิดร้านและวันลาของช่าง'],
+  notify:['การแจ้งเตือน','ข้อความและกิจกรรมล่าสุดของร้าน'],
+  setting:['การตั้งค่า','ตั้งค่าข้อมูลร้านและการจองออนไลน์']
+};
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const s=item.dataset.screen;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.screen').forEach(sc=>sc.classList.remove('active'));
+    document.getElementById(s).classList.add('active');
+    document.getElementById('pgTitle').textContent=titles[s][0];
+    document.getElementById('pgSub').textContent=titles[s][1];
+    window.scrollTo(0,0);
+  });
+});
+// tab toggle demo
+document.querySelectorAll('.tabs').forEach(g=>g.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{g.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active')})));
+</script>
+</body>
+</html>

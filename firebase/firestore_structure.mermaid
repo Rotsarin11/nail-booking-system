@@ -1,0 +1,19 @@
+graph TD
+    subgraph FS["Cloud Firestore (NoSQL)"]
+        U["📁 users<br/>role, fullName, phone<br/>lineUserId / username"]
+        S["📁 staff<br/>fullName, status<br/>serviceIds[] ⟵ ทำบริการอะไรได้<br/>schedule{} ⟵ เวลาทำงาน"]
+        SV["📁 services<br/>name, category<br/>durationMin, bufferMin, price"]
+        B["📁 bookings<br/>userId, staffId<br/>bookingDate, startTime, endTime<br/>status, totalPrice<br/>items[] ⟵ บริการ+snapshot<br/>result{} ⟵ ผลบริการ"]
+        C["📁 shopClosures<br/>closureDate, staffId, reason"]
+        N["📁 notifications<br/>bookingId, type, message<br/>scheduledAt, sentAt, status"]
+    end
+
+    U -.->|userId| B
+    S -.->|staffId| B
+    SV -.->|serviceId ใน items| B
+    S -.->|staffId| C
+    B -.->|bookingId| N
+    S -.->|serviceIds| SV
+
+    classDef col fill:#eef2ff,stroke:#6366f1,stroke-width:1px;
+    class U,S,SV,B,C,N col;
