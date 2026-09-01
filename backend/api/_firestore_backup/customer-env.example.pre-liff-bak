@@ -1,12 +1,6 @@
 # Booking API (writes go through here — keeps the anti-double-booking transaction)
 VITE_API_URL=http://localhost:4000
 
-# LINE LIFF auto-login. Get this from the LINE Developers Console →
-# your channel → LIFF tab → LIFF ID (format: 1234567890-AbcdEfgh).
-# If left blank, the app skips LIFF entirely and uses the bundled mock
-# customer profile — safe default for local dev / offline demo.
-VITE_LIFF_ID=
-
 # Firebase web config — enables TRUE realtime reads (onSnapshot).
 # Get these from Firebase Console → Project settings → General → Your apps → Web app.
 # If left blank, the app falls back to API polling.

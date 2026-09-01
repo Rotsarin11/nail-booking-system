@@ -1,19 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import * as ds from '../lib/dataSource.js'
 import { initLiffCustomer } from '../lib/liffAuth.js'
-import { blockMinutes, serviceMinutes } from '../lib/slots.js'
+import { blockMinutes } from '../lib/slots.js'
 import { FIREBASE_ENABLED, watchMyBookings, watchCollection } from '../lib/firebaseClient.js'
-import { socket } from '../lib/socket.js'
 
 const BookingContext = createContext(null)
 export const useBooking = () => useContext(BookingContext)
-
-// Realtime push (Socket.IO) is the default path since the backend moved to
-// MySQL — it replaces both the Firestore listeners above and the old
-// 8-second poll below. Firestore stays supported only if VITE_FIREBASE_*
-// is explicitly configured (legacy fallback); plain polling only kicks in
-// when neither push mechanism is available.
-const SOCKET_REALTIME = ds.API_ENABLED && !FIREBASE_ENABLED && !!socket
 
 const emptyDraft = { serviceIds: [], staffId: 'any', date: null, time: null, note: '' }
 
@@ -24,11 +16,6 @@ export function BookingProvider({ children }) {
   const [error, setError] = useState(null)
   const [myBookings, setMyBookings] = useState([])
   const [draft, setDraft] = useState(emptyDraft)
-  // Bumped whenever the server signals a booking/closure changed anywhere
-  // (availability:changed) — BookDateTime.jsx includes this in its fetch
-  // effect's deps so an already-open time picker refetches automatically
-  // when another customer takes (or frees up) a slot.
-  const [availabilityVersion, setAvailabilityVersion] = useState(0)
 
   const { services, staff, closures, shop, currentUser } = catalog
 
@@ -81,46 +68,9 @@ export function BookingProvider({ children }) {
     return () => unsub.forEach((u) => u && u())
   }, [])
 
-  // Realtime push (Socket.IO) — catalog: services / staff / closures reflect
-  // admin edits instantly, with no per-customer scoping needed (public data).
+  // Fallback (no Firebase web config): poll the API + refetch on focus.
   useEffect(() => {
-    if (!SOCKET_REALTIME) return
-    const onServices = (rows) => setCatalog((c) => ({ ...c, services: rows.filter((s) => s.isActive !== false) }))
-    const onStaff = (rows) => setCatalog((c) => ({ ...c, staff: rows }))
-    const onClosures = (rows) => setCatalog((c) => ({ ...c, closures: rows }))
-    socket.on('services:updated', onServices)
-    socket.on('staff:updated', onStaff)
-    socket.on('closures:updated', onClosures)
-    return () => {
-      socket.off('services:updated', onServices)
-      socket.off('staff:updated', onStaff)
-      socket.off('closures:updated', onClosures)
-    }
-  }, [])
-
-  // Realtime push (Socket.IO) — this customer's own bookings only (server
-  // enforces the room scoping, see backend/api/server.js), plus a general
-  // "a slot somewhere just changed" signal so an open date/time picker can
-  // refetch availability without the customer lifting a finger.
-  useEffect(() => {
-    if (!SOCKET_REALTIME || !currentUser?.id) return
-    const join = () => socket.emit('subscribe:customer', currentUser.id)
-    const onMyBookings = (rows) => setMyBookings(rows)
-    const onAvailabilityChanged = () => setAvailabilityVersion((v) => v + 1)
-    socket.on('connect', join)
-    socket.on('bookings:mine:updated', onMyBookings)
-    socket.on('availability:changed', onAvailabilityChanged)
-    if (socket.connected) join()
-    return () => {
-      socket.off('connect', join)
-      socket.off('bookings:mine:updated', onMyBookings)
-      socket.off('availability:changed', onAvailabilityChanged)
-    }
-  }, [currentUser?.id])
-
-  // Fallback (no Firebase web config, no Socket.IO): poll the API + refetch on focus.
-  useEffect(() => {
-    if (!ds.API_ENABLED || FIREBASE_ENABLED || SOCKET_REALTIME || !currentUser?.id) return
+    if (!ds.API_ENABLED || FIREBASE_ENABLED || !currentUser?.id) return
     const timer = setInterval(reloadBookings, 8000)
     const onFocus = () => reloadBookings()
     window.addEventListener('focus', onFocus)
@@ -133,15 +83,7 @@ export function BookingProvider({ children }) {
     [draft.serviceIds, services],
   )
   const totalPrice = useMemo(() => selectedServices.reduce((s, x) => s + x.price, 0), [selectedServices])
-  // blockMinutes (service + buffer) is what actually reserves the calendar
-  // slot — used for availability/endTime math, where it must be accurate.
-  // totalServiceMinutes (service time only, no buffer) is what customers
-  // see on screen next to each service's own "X นาที" label, so the running
-  // total on the selection/time pages always adds up to the same number —
-  // showing the buffer-inflated figure there made the total look "wrong"
-  // (e.g. one 60-minute service reading as a 70-minute total).
   const totalMinutes = useMemo(() => blockMinutes(selectedServices), [selectedServices])
-  const totalServiceMinutes = useMemo(() => serviceMinutes(selectedServices), [selectedServices])
 
   const toggleService = (id) =>
     setDraft((d) => ({
@@ -176,7 +118,7 @@ export function BookingProvider({ children }) {
 
   const value = {
     services, staff, closures, shop, currentUser, loading, error,
-    myBookings, draft, selectedServices, totalPrice, totalMinutes, totalServiceMinutes, availabilityVersion,
+    myBookings, draft, selectedServices, totalPrice, totalMinutes,
     toggleService, setStaff, setDate, setTime, setNote, resetDraft, startBookingWith,
     availability, days, confirmBooking, cancelBooking, reloadBookings,
   }

@@ -22,12 +22,6 @@ export function blockMinutes(items) {
   )
 }
 
-// Service time only (no buffer) — what the customer actually sees on each
-// service's own card, so the running total shown on screen always matches.
-export function serviceMinutes(items) {
-  return items.reduce((sum, s) => sum + (s.durationMin || s.durationSnapshot || 0), 0)
-}
-
 const overlaps = (aS, aE, bS, bE) => aS < bE && bS < aE
 
 function busyIntervals(bookings, staffId, dateKey) {

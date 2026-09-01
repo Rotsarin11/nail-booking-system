@@ -15,17 +15,9 @@ const todayKey = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-// The signed-in customer. Defaults to the bundled mock profile so the app
-// keeps working stand-alone (no LIFF, local dev, thesis-defense demo).
-// When opened inside LINE with VITE_LIFF_ID configured, liffAuth.js resolves
-// the real LINE identity and calls setCurrentUser() to replace this — every
-// function below reads the module-level `currentUser` at call time, so the
-// swap takes effect for createBooking/cancelBooking/loadMyBookings too, not
-// just for whatever was rendered from the initial catalog load.
-export let currentUser = mock.currentUser
-export function setCurrentUser(u) {
-  currentUser = u
-}
+// The signed-in customer. With LIFF this will come from the LINE profile;
+// for now it's the mock customer (same id the API expects as userId).
+export const currentUser = mock.currentUser
 export const shop = mock.shop
 
 // ── Catalog ─────────────────────────────────────────────────────────

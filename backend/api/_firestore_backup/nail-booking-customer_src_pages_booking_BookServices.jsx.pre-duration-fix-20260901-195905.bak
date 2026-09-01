@@ -8,7 +8,7 @@ import { baht } from '../../lib/status.js'
 
 export default function BookServices() {
   const nav = useNavigate()
-  const { draft, toggleService, totalPrice, totalServiceMinutes, services } = useBooking()
+  const { draft, toggleService, totalPrice, totalMinutes, services } = useBooking()
   const [cat, setCat] = useState('ทั้งหมด')
 
   const serviceCategories = useMemo(
@@ -40,7 +40,7 @@ export default function BookServices() {
 
       <div className="action-bar">
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-[13px] muted">{count > 0 ? `${count} บริการ · ${totalServiceMinutes} นาที` : 'ยังไม่ได้เลือกบริการ'}</span>
+          <span className="text-[13px] muted">{count > 0 ? `${count} บริการ · ${totalMinutes} นาที` : 'ยังไม่ได้เลือกบริการ'}</span>
           <span className="num text-[22px]" style={{ color: 'var(--heading)' }}>{baht(totalPrice)}</span>
         </div>
         <button className="btn btn-primary btn-block" disabled={count === 0} onClick={() => nav('/book/staff')}>ถัดไป</button>

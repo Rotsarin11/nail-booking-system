@@ -2,9 +2,6 @@
 // Mirrors the customer app's client-side algorithm, but this copy is the
 // source of truth: the booking transaction re-checks availability here
 // before writing, so two clients can never grab the same slot.
-// (Unchanged from the Firestore version — this module is storage-agnostic,
-// it only operates on plain JS objects, so it needed no changes for the
-// MySQL migration.)
 
 const STEP = 30 // slot granularity (minutes)
 

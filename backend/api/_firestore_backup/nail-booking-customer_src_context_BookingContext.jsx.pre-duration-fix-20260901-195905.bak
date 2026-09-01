@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import * as ds from '../lib/dataSource.js'
 import { initLiffCustomer } from '../lib/liffAuth.js'
-import { blockMinutes, serviceMinutes } from '../lib/slots.js'
+import { blockMinutes } from '../lib/slots.js'
 import { FIREBASE_ENABLED, watchMyBookings, watchCollection } from '../lib/firebaseClient.js'
 import { socket } from '../lib/socket.js'
 
@@ -133,15 +133,7 @@ export function BookingProvider({ children }) {
     [draft.serviceIds, services],
   )
   const totalPrice = useMemo(() => selectedServices.reduce((s, x) => s + x.price, 0), [selectedServices])
-  // blockMinutes (service + buffer) is what actually reserves the calendar
-  // slot — used for availability/endTime math, where it must be accurate.
-  // totalServiceMinutes (service time only, no buffer) is what customers
-  // see on screen next to each service's own "X นาที" label, so the running
-  // total on the selection/time pages always adds up to the same number —
-  // showing the buffer-inflated figure there made the total look "wrong"
-  // (e.g. one 60-minute service reading as a 70-minute total).
   const totalMinutes = useMemo(() => blockMinutes(selectedServices), [selectedServices])
-  const totalServiceMinutes = useMemo(() => serviceMinutes(selectedServices), [selectedServices])
 
   const toggleService = (id) =>
     setDraft((d) => ({
@@ -176,7 +168,7 @@ export function BookingProvider({ children }) {
 
   const value = {
     services, staff, closures, shop, currentUser, loading, error,
-    myBookings, draft, selectedServices, totalPrice, totalMinutes, totalServiceMinutes, availabilityVersion,
+    myBookings, draft, selectedServices, totalPrice, totalMinutes, availabilityVersion,
     toggleService, setStaff, setDate, setTime, setNote, resetDraft, startBookingWith,
     availability, days, confirmBooking, cancelBooking, reloadBookings,
   }

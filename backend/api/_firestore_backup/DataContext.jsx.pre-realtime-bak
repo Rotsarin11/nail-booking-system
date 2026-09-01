@@ -1,22 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { api, API_ENABLED } from '../lib/api.js'
 import { FIREBASE_ENABLED, watchAllBookings, watchCollection } from '../lib/firebaseClient.js'
-import { socket } from '../lib/socket.js'
 import { bookings as mockBookings, staff as mockStaff, services as mockServices, closures as mockClosures } from '../data/mockData.js'
 
 // Shared live-data context for the whole admin dashboard.
-// Reads are realtime — pushed over Socket.IO the instant anything changes
-// (a booking comes in, a service is edited, a slot is cancelled) — so no
-// page ever needs a manual refresh. (Firestore onSnapshot is still
-// supported as a legacy fallback if VITE_FIREBASE_* is configured; plain
-// polling is the last-resort fallback if neither push mechanism is
-// available.) Every write still goes through the backend API. The bell
-// reflects all pending bookings the admin has not yet reviewed (inbox-style,
-// persisted across refreshes).
+// Reads are realtime (Firestore onSnapshot) or API-polled; every write goes
+// through the backend API. The bell reflects all pending bookings the admin
+// has not yet reviewed (inbox-style, persisted across refreshes).
 const DataContext = createContext(null)
 export const useData = () => useContext(DataContext)
 const LIVE = API_ENABLED || FIREBASE_ENABLED
-const SOCKET_REALTIME = API_ENABLED && !FIREBASE_ENABLED && !!socket
 
 const READ_KEY = 'nb_read_bookings'
 const loadRead = () => { try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')) } catch { return new Set() } }
@@ -32,9 +25,8 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(LIVE)
   const [error, setError] = useState(null)
   const [readIds, setReadIds] = useState(loadRead)
-  const [live, setLive] = useState(!SOCKET_REALTIME) // true once realtime push is actually connected (or not needed)
 
-  // ── loaders (API path / manual refresh / initial load) ──
+  // ── loaders (API path / manual refresh) ──
   const loadBookings = async () => { if (API_ENABLED) setBookings(await api.getBookings()) }
   const loadServices = async () => { if (API_ENABLED) setServices(await api.getServices()) }
   const loadStaff = async () => { if (API_ENABLED) setStaff(await api.getStaff()) }
@@ -42,9 +34,6 @@ export function DataProvider({ children }) {
   const loadCustomers = async () => { if (API_ENABLED) setCustomers(await api.getCustomers()) }
   const loadSettings = async () => { if (API_ENABLED) setSettings(await api.getSettings()) }
 
-  // One-time initial load. With Socket.IO or Firestore active, the realtime
-  // effects below keep everything current after this — no polling needed.
-  // Polling is only the fallback when neither push mechanism is available.
   useEffect(() => {
     if (!LIVE) return
     let unsub = []
@@ -63,41 +52,13 @@ export function DataProvider({ children }) {
       } catch (e) { setError(e.message); setLoading(false) }
     })()
 
-    // Fallback only when neither Firebase nor Socket.IO push is active.
-    const onFocus = () => { if (!FIREBASE_ENABLED && !SOCKET_REALTIME) loadBookings(); loadCustomers() }
-    const timer = (FIREBASE_ENABLED || SOCKET_REALTIME) ? null : setInterval(() => { loadBookings() }, 8000)
+    const onFocus = () => { if (!FIREBASE_ENABLED) loadBookings(); loadCustomers() }
+    const timer = FIREBASE_ENABLED ? null : setInterval(() => { loadBookings() }, 8000)
     window.addEventListener('focus', onFocus)
     return () => {
       unsub.forEach((u) => u && u())
       if (timer) clearInterval(timer)
       window.removeEventListener('focus', onFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Realtime push (Socket.IO): join the 'admin' room and apply every
-  // full-collection payload the server sends straight into state.
-  useEffect(() => {
-    if (!SOCKET_REALTIME) return
-    const onConnect = () => { setLive(true); socket.emit('subscribe:admin') }
-    const onDisconnect = () => setLive(false)
-    const onBookings = (rows) => { setBookings(rows); loadCustomers() }
-    socket.on('connect', onConnect)
-    socket.on('disconnect', onDisconnect)
-    socket.on('services:updated', setServices)
-    socket.on('staff:updated', setStaff)
-    socket.on('closures:updated', setClosures)
-    socket.on('settings:updated', setSettings)
-    socket.on('bookings:admin:updated', onBookings)
-    if (socket.connected) onConnect()
-    return () => {
-      socket.off('connect', onConnect)
-      socket.off('disconnect', onDisconnect)
-      socket.off('services:updated', setServices)
-      socket.off('staff:updated', setStaff)
-      socket.off('closures:updated', setClosures)
-      socket.off('settings:updated', setSettings)
-      socket.off('bookings:admin:updated', onBookings)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -122,11 +83,6 @@ export function DataProvider({ children }) {
     try { localStorage.setItem(READ_KEY, JSON.stringify([...next])) } catch { /* ignore */ }
   }
 
-  // Realtime push (Socket.IO or Firestore) already re-syncs every client
-  // after a write lands, so the manual refetch below is only needed on the
-  // plain-polling fallback path.
-  const NEEDS_MANUAL_REFRESH = !FIREBASE_ENABLED && !SOCKET_REALTIME
-
   // ── bookings mutations ──
   // opts.cancelReason is required by the API when status === 'cancelled'.
   const updateStatus = async (id, status, opts = {}) => {
@@ -142,23 +98,23 @@ export function DataProvider({ children }) {
   }
 
   // ── services mutations ──
-  const saveService = async (id, data) => { if (!API_ENABLED) return; if (id) await api.updateService(id, data); else await api.createService(data); if (NEEDS_MANUAL_REFRESH) loadServices() }
-  const deleteService = async (id) => { if (!API_ENABLED) return; await api.deleteService(id); if (NEEDS_MANUAL_REFRESH) loadServices() }
+  const saveService = async (id, data) => { if (!API_ENABLED) return; if (id) await api.updateService(id, data); else await api.createService(data); if (!FIREBASE_ENABLED) loadServices() }
+  const deleteService = async (id) => { if (!API_ENABLED) return; await api.deleteService(id); if (!FIREBASE_ENABLED) loadServices() }
 
   // ── staff mutations ──
-  const saveStaff = async (id, data) => { if (!API_ENABLED) return; if (id) await api.updateStaff(id, data); else await api.createStaff(data); if (NEEDS_MANUAL_REFRESH) loadStaff() }
-  const deleteStaff = async (id) => { if (!API_ENABLED) return; await api.deleteStaff(id); if (NEEDS_MANUAL_REFRESH) loadStaff() }
+  const saveStaff = async (id, data) => { if (!API_ENABLED) return; if (id) await api.updateStaff(id, data); else await api.createStaff(data); if (!FIREBASE_ENABLED) loadStaff() }
+  const deleteStaff = async (id) => { if (!API_ENABLED) return; await api.deleteStaff(id); if (!FIREBASE_ENABLED) loadStaff() }
 
   // ── closures mutations ──
-  const addClosure = async (data) => { if (!API_ENABLED) return; await api.createClosure(data); if (NEEDS_MANUAL_REFRESH) loadClosures() }
-  const removeClosure = async (id) => { if (!API_ENABLED) return; await api.deleteClosure(id); if (NEEDS_MANUAL_REFRESH) loadClosures() }
+  const addClosure = async (data) => { if (!API_ENABLED) return; await api.createClosure(data); if (!FIREBASE_ENABLED) loadClosures() }
+  const removeClosure = async (id) => { if (!API_ENABLED) return; await api.deleteClosure(id); if (!FIREBASE_ENABLED) loadClosures() }
 
   // ── settings ──
   const saveSettings = async (data) => { setSettings((s) => ({ ...s, ...data })); if (API_ENABLED) await api.saveSettings(data) }
 
   return (
     <DataContext.Provider value={{
-      bookings, services, staff, closures, customers, settings, loading, error, apiEnabled: API_ENABLED, live,
+      bookings, services, staff, closures, customers, settings, loading, error, apiEnabled: API_ENABLED,
       notifications, unread, markNotificationsRead,
       reload: loadBookings, refreshCustomers: loadCustomers,
       updateStatus, saveService, deleteService, saveStaff, deleteStaff, addClosure, removeClosure, saveSettings,

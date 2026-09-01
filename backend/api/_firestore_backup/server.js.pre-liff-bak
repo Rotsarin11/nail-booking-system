@@ -13,10 +13,8 @@
  * plus schema_addendum_mysql_migration.sql — see .env.example for connection config.
  */
 require('dotenv').config()
-const http = require('http')
 const express = require('express')
 const cors = require('cors')
-const { Server } = require('socket.io')
 const repo = require('./lib/repo')
 const slots = require('./lib/slots')
 
@@ -25,61 +23,6 @@ app.use(cors())
 app.use(express.json())
 
 const PORT = process.env.PORT || 4000
-
-// ── Realtime (Socket.IO) ────────────────────────────────────────────
-// Every page that used to poll the API or listen to Firestore onSnapshot
-// now gets pushed the same full-collection payload over a socket instead —
-// no page refresh needed. Writes still go through the REST endpoints below;
-// sockets are read-only push, so there is exactly one place (the endpoint
-// handler) that can ever change data.
-//
-// Rooms:
-//   'admin'            — the owner dashboard (sees every booking)
-//   'customer:<userId>' — one customer's own bookings only (never another
-//                          customer's name/phone — that only ever went to
-//                          'admin')
-const server = http.createServer(app)
-const io = new Server(server, { cors: { origin: '*' } })
-
-io.on('connection', (socket) => {
-  socket.on('subscribe:admin', () => socket.join('admin'))
-  socket.on('subscribe:customer', (userId) => {
-    if (userId) socket.join(`customer:${userId}`)
-  })
-})
-
-const emitServices = async () => io.emit('services:updated', (await repo.getServices()).filter((s) => s.isActive !== false))
-const emitStaff = async () => io.emit('staff:updated', await repo.getStaff())
-const emitClosures = async () => io.emit('closures:updated', await repo.getClosures())
-const emitSettings = async () => io.emit('settings:updated', await repo.getSettings())
-const emitAdminBookings = async () => io.to('admin').emit('bookings:admin:updated', await repo.getBookings())
-// `numericUserId` is always the internal users.user_id (every booking
-// mutation handler already has this). The browser, though, subscribed to
-// its OWN room using whatever id it uses for API calls — a LIFF session's
-// numeric id (matches numericUserId directly), or the mock demo's fixed
-// 'u_101' (stored as that user's line_user_id) — so emit to both possible
-// room names; only the one the client actually joined will have a listener.
-const emitCustomerBookings = async (numericUserId) => {
-  if (numericUserId == null) return
-  const list = (await repo.getBookings()).filter((b) => b.userId === String(numericUserId))
-  io.to(`customer:${numericUserId}`).emit('bookings:mine:updated', list)
-  const externalId = await repo.getUserExternalId(numericUserId)
-  if (externalId && externalId !== String(numericUserId)) {
-    io.to(`customer:${externalId}`).emit('bookings:mine:updated', list)
-  }
-}
-// A booking or closure changing shifts slot availability for EVERY viewer
-// currently on the date/time picker (not just the two rooms above), so this
-// one is a broadcast signal rather than a room-scoped payload — the client
-// just re-runs its existing availability fetch when it hears this.
-const emitAvailabilityChanged = () => io.emit('availability:changed')
-// After any booking mutation: refresh both rooms that could be showing it,
-// plus the general availability signal (a freed/taken slot affects anyone
-// currently picking a time, not just the two parties on this booking).
-const emitBookingChanged = async (userId) => {
-  await Promise.all([emitAdminBookings(), emitCustomerBookings(userId)])
-  emitAvailabilityChanged()
-}
 const todayKey = () => {
   const d = new Date()
   const p = (n) => String(n).padStart(2, '0')
@@ -93,45 +36,6 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
 // ── Health ──────────────────────────────────────────────────────────
 app.get('/api/health', wrap(async (_req, res) => {
   res.json({ ok: true, db: process.env.DB_NAME || 'nail_booking', time: new Date().toISOString() })
-}))
-
-// ── LINE auto-login (LIFF) ──────────────────────────────────────────
-// POST /api/auth/line   Authorization: Bearer <liff.getAccessToken()>
-// Verifies the access token was issued to OUR LINE Login channel (never
-// trust a lineUserId handed to us directly by the client — see
-// firebase/liff_auth_flow.md), fetches the LINE profile, and upserts the
-// matching row in `users` (role=customer) — the same upsert the booking
-// endpoint already uses, so a returning customer keeps the same numeric
-// user_id. Returns the resolved identity for the customer app to use as
-// `userId` on subsequent /api/bookings calls.
-app.post('/api/auth/line', wrap(async (req, res) => {
-  const accessToken = (req.headers.authorization || '').split(' ')[1]
-  if (!accessToken) return res.status(401).json({ error: 'ไม่มี access token' })
-
-  const verify = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${accessToken}`)
-    .then((r) => r.json())
-    .catch(() => null)
-  if (!verify || verify.error) return res.status(401).json({ error: 'access token ไม่ถูกต้อง' })
-  if (!process.env.LINE_LOGIN_CHANNEL_ID || verify.client_id !== process.env.LINE_LOGIN_CHANNEL_ID) {
-    return res.status(401).json({ error: 'access token ไม่ได้ออกให้ channel นี้' })
-  }
-
-  const profile = await fetch('https://api.line.me/v2/profile', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  }).then((r) => r.json()).catch(() => null)
-  if (!profile || !profile.userId) return res.status(401).json({ error: 'ดึงโปรไฟล์ LINE ไม่สำเร็จ' })
-
-  const numericId = await repo.upsertCustomerUser({
-    externalId: profile.userId, fullName: profile.displayName, phone: null,
-  })
-  res.json({
-    user: {
-      id: String(numericId),
-      lineUserId: profile.userId,
-      fullName: profile.displayName,
-      pictureUrl: profile.pictureUrl || '',
-    },
-  })
 }))
 
 // ── Catalog reads ───────────────────────────────────────────────────
@@ -201,7 +105,6 @@ app.post('/api/bookings', wrap(async (req, res) => {
   }
   const created = await repo.createBookingTx({ userId, userName, phone, serviceIds, staffId, date, time, note })
   res.status(201).json(created)
-  emitBookingChanged(created.userId).catch((e) => console.error('emitBookingChanged:', e.message))
 }))
 
 // ── Update status (admin) ───────────────────────────────────────────
@@ -218,7 +121,6 @@ app.patch('/api/bookings/:id', wrap(async (req, res) => {
   if (!existing) return res.status(404).json({ error: 'ไม่พบการจอง' })
   const updated = await repo.updateBookingStatus(req.params.id, { status, result, cancelReason })
   res.json(updated)
-  emitBookingChanged(updated.userId).catch((e) => console.error('emitBookingChanged:', e.message))
 }))
 
 // ── Cancel (customer) ───────────────────────────────────────────────
@@ -227,7 +129,6 @@ app.post('/api/bookings/:id/cancel', wrap(async (req, res) => {
   if (!existing) return res.status(404).json({ error: 'ไม่พบการจอง' })
   const updated = await repo.cancelBookingByCustomer(req.params.id, req.body?.cancelReason)
   res.json(updated)
-  emitBookingChanged(updated.userId).catch((e) => console.error('emitBookingChanged:', e.message))
 }))
 
 // ════════════════════════════════════════════════════════════════════
@@ -245,7 +146,6 @@ app.post('/api/services', wrap(async (req, res) => {
     isActive: b.isActive !== false,
   })
   res.status(201).json(created)
-  emitServices().catch((e) => console.error('emitServices:', e.message))
 }))
 app.patch('/api/services/:id', wrap(async (req, res) => {
   const b = req.body || {}
@@ -260,12 +160,10 @@ app.patch('/api/services/:id', wrap(async (req, res) => {
   const updated = await repo.updateService(req.params.id, patch)
   if (!updated) return res.status(404).json({ error: 'ไม่พบบริการ' })
   res.json(updated)
-  emitServices().catch((e) => console.error('emitServices:', e.message))
 }))
 app.delete('/api/services/:id', wrap(async (req, res) => {
   await repo.deleteService(req.params.id)
   res.json({ ok: true })
-  emitServices().catch((e) => console.error('emitServices:', e.message))
 }))
 
 // ── Staff ───────────────────────────────────────────────────────────
@@ -275,18 +173,15 @@ app.post('/api/staff', wrap(async (req, res) => {
   const id = await repo.createStaff(b)
   const all = await repo.getStaff()
   res.status(201).json(all.find((s) => s.id === String(id)))
-  emitStaff().catch((e) => console.error('emitStaff:', e.message))
 }))
 app.patch('/api/staff/:id', wrap(async (req, res) => {
   await repo.updateStaff(req.params.id, req.body || {})
   const all = await repo.getStaff()
   res.json(all.find((s) => s.id === String(req.params.id)))
-  emitStaff().catch((e) => console.error('emitStaff:', e.message))
 }))
 app.delete('/api/staff/:id', wrap(async (req, res) => {
   await repo.deleteStaff(req.params.id)
   res.json({ ok: true })
-  emitStaff().catch((e) => console.error('emitStaff:', e.message))
 }))
 
 // ── Shop closures (holidays + staff leave) ──────────────────────────
@@ -295,14 +190,10 @@ app.post('/api/shop-closures', wrap(async (req, res) => {
   if (!b.closureDate) return res.status(400).json({ error: 'ต้องระบุวันที่' })
   const created = await repo.createClosure(b)
   res.status(201).json(created)
-  emitClosures().catch((e) => console.error('emitClosures:', e.message))
-  emitAvailabilityChanged()
 }))
 app.delete('/api/shop-closures/:id', wrap(async (req, res) => {
   await repo.deleteClosure(req.params.id)
   res.json({ ok: true })
-  emitClosures().catch((e) => console.error('emitClosures:', e.message))
-  emitAvailabilityChanged()
 }))
 
 // ── Customers (users with role=customer + derived stats) ────────────
@@ -315,11 +206,9 @@ app.get('/api/settings', wrap(async (_req, res) => {
   res.json(await repo.getSettings())
 }))
 app.put('/api/settings', wrap(async (req, res) => {
-  const saved = await repo.saveSettings(req.body || {})
-  res.json(saved)
-  emitSettings().catch((e) => console.error('emitSettings:', e.message))
+  res.json(await repo.saveSettings(req.body || {}))
 }))
 
-server.listen(PORT, () => {
-  console.log(`✅ Booking API (MySQL) + Socket.IO listening on http://localhost:${PORT}`)
+app.listen(PORT, () => {
+  console.log(`✅ Booking API (MySQL) listening on http://localhost:${PORT}`)
 })
